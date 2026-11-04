@@ -1,4 +1,4 @@
-# Familia Segoviano Caudillo
+# Familia SECI App
 
 Pendientes, wishlists, cumpleaños e intercambio navideño. Vite + JS + Firebase.
 
