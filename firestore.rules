@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Lista de correos permitidos: allowed/{email}  { admin: true|false }
+    // Se crea a mano en la consola para el primer admin; luego el admin agrega al resto.
+    function email() { return request.auth.token.email; }
+    function isFamily() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/allowed/$(email()));
+    }
+    function isAdmin() {
+      return isFamily() &&
+        get(/databases/$(database)/documents/allowed/$(email())).data.admin == true;
+    }
+
+    match /allowed/{mail} {
+      allow read: if request.auth != null && (email() == mail || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /members/{uid} {
+      allow read: if isFamily();
+      allow write: if isFamily() && (request.auth.uid == uid || isAdmin());
+    }
+
+    match /wishes/{uid} {
+      allow read: if isFamily();
+      allow write: if isFamily() && (request.auth.uid == uid || isAdmin());
+    }
+
+    match /tasks/{id} { allow read, write: if isFamily(); }
+
+    match /cfg/{id} {
+      allow read: if isFamily();
+      allow write: if isAdmin();
+    }
+
+    // taken/{receiverUid}: marca quién ya fue sacado (sin revelar quién lo sacó)
+    match /taken/{uid} { allow read, write: if isFamily(); }
+
+    // Asignación privada: solo la ve quien la sacó
+    match /users/{uid}/private/{doc} {
+      allow read, write: if isFamily() && request.auth.uid == uid;
+    }
+
+    // Quién va a regalar qué. El dueño de la lista NO puede leerlo.
+    match /claims/{owner}/items/{id} {
+      allow read: if isFamily() && request.auth.uid != owner;
+      allow create: if isFamily() && request.auth.uid != owner
+                    && request.resource.data.by == request.auth.uid;
+      allow delete: if isFamily() && resource.data.by == request.auth.uid;
+    }
+
+    match /events/{id} {
+      allow read: if isFamily();
+      allow create: if isFamily() && request.resource.data.by == request.auth.uid;
+      // Cualquiera puede marcar "Voy"; solo el creador edita el resto
+      allow update: if isFamily() && (resource.data.by == request.auth.uid
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['going']));
+      allow delete: if isFamily() && (resource.data.by == request.auth.uid || isAdmin());
+    }
+  }
+}
