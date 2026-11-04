@@ -1,3 +1,4 @@
+import "./styles.css";
 import { auth, db, provider } from "./firebase.js";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, collection, getDoc, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, arrayUnion, arrayRemove } from "firebase/firestore";
@@ -9,6 +10,7 @@ let me, admin = false, pend = false, unsubs = [], claimUnsub = null, claimOwner 
 
 const n = id => S.members[id]?.name || "Alguien";
 const mine = () => S.members[me.uid] || {};
+const av = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 360; return `<span class="av" style="--h:${h}">${esc((n(id)[0] || "?").toUpperCase())}</span>`; };
 const myDraw = () => (S.draw && S.draw.round === S.cfg.round ? S.draw.to : null);
 const toast = t => { const m = $("#msg"); m.textContent = t; m.style.display = "block"; setTimeout(() => (m.style.display = "none"), 3000); };
 const fail = () => toast("No se pudo guardar");
@@ -38,7 +40,7 @@ const V = {
       <div class="r" style="margin-top:8px"><label><input type="checkbox" data-f="ex" ${m.ex ? "checked" : ""}> Participo en el intercambio</label></div>
       <div class="r" style="margin-top:8px"><button data-act="logout">Salir</button></div></div>
       <h2>Tengo ${pn} pendiente${pn === 1 ? "" : "s"}</h2>
-      <h2>Próximos cumpleaños</h2>${bds.map(([i, d]) => `<div class="cd r"><b>${esc(n(i))}</b><span class="mu">${fmtBd(S.members[i].bd)}</span><span class="sp"></span>${d === 0 ? "🎂 ¡Hoy!" : "en " + d + " días"}<button data-act="goWish" data-id="${esc(i)}">🎁</button></div>`).join("") || '<p class="mu">Nadie ha puesto su cumpleaños.</p>'}
+      <h2>Próximos cumpleaños</h2>${bds.map(([i, d]) => `<div class="cd r bd">${av(i)}<span class="sp"><b>${esc(n(i))}</b><br><span class="mu">${fmtBd(S.members[i].bd)}</span></span><span class="when">${d === 0 ? "¡Hoy!" : "en " + d + " días"}</span><button data-act="goWish" data-id="${esc(i)}" aria-label="Ver wishlist">🎁</button></div>`).join("")}
       ${admin ? `<h2>Admin: agregar familiar</h2><div class="cd r"><input id="ne" placeholder="correo@gmail.com"><button data-act="allow">Permitir</button></div>` : ""}`;
   },
   tasks() {
@@ -46,11 +48,11 @@ const V = {
     return `<h2>Pendientes</h2><div class="cd"><div class="r"><input id="tt" placeholder="¿Qué hay que hacer?"><select id="tc"><option>Casa</option><option>Compras</option><option>Escuela</option><option>Eventos</option><option>Otro</option></select></div>
       <div class="r" style="margin-top:8px"><select id="ta"><option value="all">Para todos</option>${opts("", null)}</select><button class="p" data-act="addTask">Agregar</button></div></div>
       <div class="r">${["todas", "mias", "hechas"].map(f => `<button class="chip ${S.flt === f ? "on" : ""}" data-act="flt" data-id="${f}">${{ todas: "Todas", mias: "Mías", hechas: "Hechas" }[f]}</button>`).join("")}</div>
-      ${L.map(t => `<div class="cd r"><input type="checkbox" data-tog="${esc(t.id)}" ${t.done ? "checked" : ""}><span class="sp ${t.done ? "done" : ""}">${esc(t.t)}<br><span class="mu">${esc(t.c)} · ${t.a === "all" ? "Todos" : esc(n(t.a))}</span></span><button class="x" data-act="delT" data-id="${esc(t.id)}">✕</button></div>`).join("") || '<p class="mu">Nada por aquí.</p>'}`;
+      ${L.map(t => `<div class="cd r"><input type="checkbox" data-tog="${esc(t.id)}" ${t.done ? "checked" : ""}><span class="sp ${t.done ? "done" : ""}">${esc(t.t)}<br><span class="mu">${esc(t.c)} · ${t.a === "all" ? "Todos" : esc(n(t.a))}</span></span>${t.a === "all" ? "" : av(t.a)}<button class="x" data-act="delT" data-id="${esc(t.id)}">✕</button></div>`).join("") || '<p class="mu">Nada por aquí.</p>'}`;
   },
   wish() {
     const w = S.who || me.uid, it = S.wishes[w]?.items || [], own = w === me.uid;
-    return `<h2>Wishlists</h2><div class="r">${Object.keys(S.members).map(i => `<button class="chip ${i === w ? "on" : ""}" data-act="goWish" data-id="${esc(i)}">${i === me.uid ? "Yo" : esc(n(i))}</button>`).join("")}</div>
+    return `<h2>Wishlists</h2><div class="r">${Object.keys(S.members).map(i => `<button class="chip ${i === w ? "on" : ""}" data-act="goWish" data-id="${esc(i)}">${i === me.uid ? "Yo" : esc(n(i))}${av(i)}</button>`).join("")}</div>
       ${S.members[w]?.bd ? `<p class="mu">🎂 ${fmtBd(S.members[w].bd)}</p>` : ""}
       ${own ? `<div class="cd"><div class="r"><input id="wt" placeholder="Me gustaría…"><input id="wu" placeholder="Link (opcional)"><button class="p" data-act="addW">Agregar</button></div></div>` : ""}
       ${it.map((x, k) => {
@@ -88,7 +90,7 @@ const V = {
     return `<h2>🎄 Intercambio navideño</h2><p class="mu">${c.date ? "Fecha: " + esc(c.date) + " · " : ""}${c.budget ? "Presupuesto: $" + esc(c.budget) : "Sin presupuesto definido"}</p>
       <div class="cd"><b>Participantes (${ps.length}):</b> ${ps.map(i => esc(n(i))).join(", ") || "ninguno todavía"}
       ${mine().ex ? "" : '<br><button class="p" data-act="join" style="margin-top:8px">Quiero participar</button>'}</div>
-      ${mine().ex ? (to ? `<div class="cd">Te tocó regalarle a<div class="big">${esc(n(to))}</div><button data-act="goWish" data-id="${esc(to)}">Ver su wishlist 🎁</button></div>` : `<div class="cd"><p>Cada quien saca su amigo secreto; nadie más lo ve.</p><button class="p" data-act="pick">🎲 Sacar mi amigo secreto</button></div>`) : ""}
+      ${mine().ex ? (to ? `<div class="cd reveal">Te tocó regalarle a<div class="big">${esc(n(to))}</div><button data-act="goWish" data-id="${esc(to)}">Ver su wishlist 🎁</button></div>` : `<div class="cd"><p>Cada quien saca su amigo secreto; nadie más lo ve.</p><button class="p" data-act="pick">🎲 Sacar mi amigo secreto</button></div>`) : ""}
       <p class="mu">Ya sacaron: ${Object.values(S.taken).filter(t => t.round === c.round).length} de ${ps.length}</p>
       ${admin ? `<h2>Organizador</h2><div class="cd"><div class="r"><input id="cb" placeholder="Presupuesto" value="${esc(c.budget || "")}"><input id="cd" placeholder="Fecha" value="${esc(c.date || "")}"></div>
       <div class="r" style="margin-top:8px"><button data-act="saveCfg">Guardar</button><button data-act="reset">Reiniciar sorteo</button></div></div>` : ""}`;
