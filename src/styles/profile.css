@@ -1,0 +1,96 @@
+.hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: 1.6rem
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0
+}
+
+.tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 2px;
+    padding: 14px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    min-width: 0
+}
+
+.tile .num {
+    font: 800 2rem/1.1 var(--display);
+    color: var(--pine)
+}
+
+.tile b {
+    font-weight: 700;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+.tile .lbl {
+    color: var(--mute);
+    font-weight: 400;
+    font-size: .85rem
+}
+
+.av.lg {
+    width: 84px;
+    height: 84px;
+    font-size: 2rem
+}
+
+img.av {
+    object-fit: cover
+}
+
+.hero .av.lg {
+    width: 64px;
+    height: 64px;
+    font-size: 1.6rem
+}
+
+.center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px
+}
+
+.field {
+    display: grid;
+    gap: 4px;
+    margin: 0 0 14px
+}
+
+.field span {
+    color: var(--mute);
+    font-size: .9rem
+}
+
+.filebtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 9px 12px;
+    background: var(--surface)
+}

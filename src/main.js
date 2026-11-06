@@ -1,4 +1,5 @@
-import "./styles.css";
+import "./styles/main.css"
+import "./styles/profile.css"
 import { auth, db, provider } from "./firebase.js";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, collection, getDoc, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, arrayUnion, arrayRemove } from "firebase/firestore";
@@ -190,7 +191,7 @@ const V = {
         ${ps.map(i => esc(n(i))).join(", ") || "ninguno todavía"}
         ${mine().ex ? "" : '<br><button class="p" data-act="join" style="margin-top:8px">Quiero participar</button>'}
       </div>
-      ${mine().ex ? (to ? `<div class="cd reveal">Te tocó regalarle a<div class="big">${esc(n(to))}</div><button data-act="goWish" data-id="${esc(to)}">Ver su wishlist ${ic("gift")}</button></div>` : `<div class="cd"><p>Cada quien saca su amigo secreto; nadie más lo ve.</p><button class="p" data-act="pick">${ic("shuffle")} Sacar mi amigo secreto</button></div>`) : ""}
+      ${mine().ex ? (to ? `<div class="cd reveal">Te tocó regalarle a<div class="who">${av(to, true)}<div class="big">${esc(n(to))}</div></div><button data-act="goWish" data-id="${esc(to)}">Ver su wishlist ${ic("gift")}</button></div>` : `<div class="cd"><p>Cada quien saca su amigo secreto; nadie más lo ve.</p><button class="p" data-act="pick">${ic("shuffle")} Sacar mi amigo secreto</button></div>`) : ""}
       <p class="mu">Ya sacaron: ${Object.values(S.taken).filter(t => t.round === c.round).length} de ${ps.length}</p>
       ${admin ? `<h2>Organizador</h2><div class="cd"><div class="r"><input id="cb" placeholder="Presupuesto" value="${esc(c.budget || "")}"><input id="cd" placeholder="Fecha" value="${esc(c.date || "")}"></div>
       <div class="r" style="margin-top:8px"><button data-act="saveCfg">Guardar</button><button data-act="reset">Reiniciar sorteo</button></div></div>` : ""}`;
