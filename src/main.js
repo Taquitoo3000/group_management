@@ -2,7 +2,7 @@ import "./styles/main.css"
 import "./styles/profile.css"
 import { auth, db, provider } from "./firebase.js";
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { doc, collection, getDoc, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, collection, getDoc, setDoc, updateDoc, addDoc, deleteDoc, onSnapshot, arrayUnion, arrayRemove, runTransaction } from "firebase/firestore";
 import { createIcons, House, ListChecks, Gift, CalendarDays, TreePine, Cake, Trash2, Check, Shuffle, Utensils, PartyPopper, Stethoscope, Pin, LogOut, Pencil, Camera, ArrowLeft, ChevronRight } from "lucide";
 const icons = { House, ListChecks, Gift, CalendarDays, TreePine, Cake, Trash2, Check, Shuffle, Utensils, PartyPopper, Stethoscope, Pin, LogOut, Pencil, Camera, ArrowLeft, ChevronRight };
 const ic = (name, cls = "ic") => `<i data-lucide="${name}" class="${cls}"></i>`;
@@ -236,15 +236,21 @@ const act = {
   },
   pick: async () => {
     const m = mine();
-    for (let i = 0; i < 4; i++) {
-      const pool = Object.keys(S.members).filter(k => S.members[k].ex && k !== me.uid && k !== m.partner && S.members[k].partner !== me.uid && !(S.taken[k]?.round === S.cfg.round));
+    const round = S.cfg.round, lost = new Set();   // lost: ya apartados por otro mientras sacábamos
+    for (let i = 0; i < 6; i++) {
+      const pool = Object.keys(S.members).filter(k => S.members[k].ex && k !== me.uid && k !== m.partner && S.members[k].partner !== me.uid && !(S.taken[k]?.round === round) && !lost.has(k));
       if (!pool.length) return toast("No quedan opciones. Pide al organizador reiniciar.");
-      const r = pool[Math.floor(Math.random() * pool.length)], nonce = Math.random().toString(36).slice(2);
-      await setDoc(doc(db, "taken", r), { round: S.cfg.round, nonce });
-      if ((await getDoc(doc(db, "taken", r))).data()?.nonce === nonce) {
-        await setDoc(doc(db, "users", me.uid, "private", "draw"), { round: S.cfg.round, to: r });
-        return;
-      }
+      const r = pool[Math.floor(Math.random() * pool.length)];
+      // Transacción: lee y aparta de forma atómica; si dos sacan a la vez, solo uno gana
+      const ok = await runTransaction(db, async tx => {
+        const t = await tx.get(doc(db, "taken", r));
+        if (t.exists() && t.data().round === round) return false;
+        tx.set(doc(db, "taken", r), { round });
+        tx.set(doc(db, "users", me.uid, "private", "draw"), { round, to: r });
+        return true;
+      }).catch(() => false);
+      if (ok) return;
+      lost.add(r);
     }
     toast("Intenta de nuevo");
   },

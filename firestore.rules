@@ -37,7 +37,13 @@ service cloud.firestore {
     }
 
     // taken/{receiverUid}: marca quién ya fue sacado (sin revelar quién lo sacó)
-    match /taken/{uid} { allow read, write: if isFamily(); }
+    // Solo se aparta si no estaba apartado en esta ronda; solo el admin borra (reiniciar)
+    match /taken/{uid} {
+      allow read: if isFamily();
+      allow create: if isFamily();
+      allow update: if isFamily() && resource.data.round != request.resource.data.round;
+      allow delete: if isAdmin();
+    }
 
     // Asignación privada: solo la ve quien la sacó
     match /users/{uid}/private/{doc} {
